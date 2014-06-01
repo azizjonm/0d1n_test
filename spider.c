@@ -86,6 +86,7 @@ puts("debug 0");
 		if(arg[11]!=NULL)
 		{
 			ptr=(char *)malloc(strlen(make)*sizeof(char)+1);
+//change this 2 strlcpy()
 			strcpy(ptr,make);
                         line_p=(char *)malloc(sizeof(char)*1024);
                         short pos=0;
@@ -109,11 +110,12 @@ puts("debug strcpy");
 					*(line_p+pos)=*ptr;
 					if(*ptr=='\n' && strlen(line_p)>=5 && !last)
 					{
-				/*		line_p=StrRep(line_p,"\n","",512);
+// here be dragons, bugs bugs everywhere HAHAHA, zi i need ob other form to fix this 
+						line_p=StrRep(line_p,"\n","",512);
 						line_p=StrRep(line_p,"\r","",512);
 						line_p=StrRep(line_p,"\t","",512);
 						line_p=StrRep(line_p,"\r\n","",512);
-*/
+
 						printf("header: %s\n",line_p);
 						headers2=curl_slist_append(headers2,line_p);
 						memset(line_p,0,strlen(line_p)-1);
