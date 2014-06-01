@@ -1,0 +1,10 @@
+PUT /put HTTP/1.1
+User-Agent: hellblazer ! /0.666
+Host: httpbin.org
+Accept: */*
+Content-Length: 47
+Content-Type: application/json
+Accept: application/json
+
+{ "name" : " !" , "pass" : "milk666" }
+
