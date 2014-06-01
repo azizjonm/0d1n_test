@@ -24,28 +24,9 @@ COOLER LABs  lol  ::: coolerlab.wordpress.com :::
 more information about this project
 http://code.google.com/p/0d1n/
 
-BUGSEC TEAM
+Original version at ---> https://github.com/CoolerVoid/0d1n
 
-====================================================================
-
-
-how too install ?
-
-$ make
-$ ./0d1n
-
-Example:
-
-$ ./0d1n -h 'http://host/find.php?search=!&type=!' -p payloads/xss-rsnake.txt -f response2find/find.txt  -o outa -T 10 -u "firefox OS from hell"
-
-Notes:
-
-the list to "grep", dont can have large strings, 
-max string size is 31 chars.
-
-if you want look the current version, you can going 
-here https://github.com/CoolerVoid/0d1n
-
+this is test version
 
 
 
