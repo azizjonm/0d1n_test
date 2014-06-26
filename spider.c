@@ -1,9 +1,13 @@
 #include "spider.h"
+// tabela padrão do datatables
 #define TABLE "tables/output_array.txt"
 #define TEMPLATE "template.conf"
 #define TEMPLATE2 "hammer1.conf"
 #define TEMPLATE3 "hammer2.conf"
 
+/*
+Escreve na memória a response em MemoryStruct
+*/
 size_t WriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *data) 
 {
 	size_t realsize = size * nmemb;
@@ -21,6 +25,12 @@ size_t WriteMemoryCallback(void *ptr, size_t size, size_t nmemb, void *data)
 	return realsize;
 }
 
+/*
+Função principal  crawler e faz match usando strstr() ou match usando posix regex()
+pack seria as variáveis dos argumentos get-opt do 0d1n.c
+line seria informação da lista para teste uma URL,dados de payloads
+pathtable nome da tabela do resultado final 
+*/
 void spider(void *pack,char *line,char * pathtable)
 {
 	FILE *fp=NULL;
@@ -28,24 +38,29 @@ void spider(void *pack,char *line,char * pathtable)
 	long status=0;
 	int old=0,counter=0,POST=0,first=0,last=0; 
 	char *make=NULL,*pathsource=NULL;
-        char *data=NULL,*method=NULL,*request_file=NULL,*line_p=NULL,*ptr=NULL; 
+        char *data=NULL,*method=NULL,*request_file=NULL,*line_p=NULL,*ptr=NULL;
+        // abre pacote de argumentos
 	char **pack_ptr=(char **)pack,**arg = pack_ptr;
 	char tabledata[6660],randname[16],log[5025],line2[1024];
 
 	CURL *curl;  
-	curl_global_init(CURL_GLOBAL_ALL); 
+	curl_global_init(CURL_GLOBAL_ALL);
+	// headers crawler do curl
 	struct curl_slist *headers2 = NULL;
+	// chunk vai ficar a response
 	struct MemoryStruct chunk;
 
 	POST=(arg[4]==NULL)?0:1;
-   
+   // conta quantos chars especiais "!" tem para trocar por payloads no POST ou GET
 	counter=char_type_counter(POST?arg[4]:arg[0],'!');
 	old=counter;  
+	// para evitar char final indesejado
 	chomp(line);
 
 // xxx...custom..request...xxx special char counter
 	if(arg[11]!=NULL)
 	{
+		// vai ler a template de request, ver quantos chars especiais "!" tem para trocar por palavras de payloads
                 request_file=(char*)malloc(3000*sizeof(char));
                 request_file=readLine(arg[11]);
                 old=char_type_counter(request_file,'!');
@@ -60,6 +75,7 @@ void spider(void *pack,char *line,char * pathtable)
 
 	while(old)
 	{
+		// chunk.memory fica a response
 		chunk.memory=NULL; 
 		chunk.size = 0; 
  
@@ -67,10 +83,12 @@ void spider(void *pack,char *line,char * pathtable)
 
 		if(arg[11]==NULL) 
 		{
+			// troca o char "!" por payload escolhido em POST ou GET
 			make=payload_injector( (POST?arg[4]:arg[0]),line,old);
 	 		curl_easy_setopt(curl,  CURLOPT_URL, POST?arg[0]:make);
 		} else {
-// to use custom request
+// caso nao passe o argumento de POST ou GET e tenha definido template de request "custom-request"
+// troca onde tem "!" por um payload "line"
 			make=payload_injector(request_file,line,old);
 			data=(char *)malloc(1024*sizeof(char)),method=(char *)malloc(1024*sizeof(char)); 
 			memset(data,0,strlen(data));
@@ -79,10 +97,10 @@ void spider(void *pack,char *line,char * pathtable)
 	 		curl_easy_setopt(curl,  CURLOPT_URL, arg[0]);
 puts("debug 0");
 		}    
-
+// caso tenha argumento POST define POST
 		if(POST)
 			curl_easy_setopt(curl, CURLOPT_POSTFIELDS, make);
-// custom request
+// custom request parser
 		if(arg[11]!=NULL)
 		{
 			ptr=(char *)malloc(strlen(make)*sizeof(char)+1);
@@ -95,7 +113,7 @@ puts("memset1");
 			memset(method,0,256);
                         
 puts("debug strcpy");                              	
-		
+		// parseia as headers e manda para libcurl
 			while(*ptr!='\0') 
 			{
 				if(!first)
@@ -110,7 +128,8 @@ puts("debug strcpy");
 					*(line_p+pos)=*ptr;
 					if(*ptr=='\n' && strlen(line_p)>=5 && !last)
 					{
-// here be dragons, bugs bugs everywhere HAHAHA, zi i need ob other form to fix this 
+// here be dragons, bugs bugs everywhere HAHAHA, zi i need ob other form to fix this
+// remove \n ... do contrario array de headers do curl buga
 						line_p=StrRep(line_p,"\n","",512);
 						line_p=StrRep(line_p,"\r","",512);
 						line_p=StrRep(line_p,"\t","",512);
@@ -138,7 +157,7 @@ puts("debug strcpy");
 				ptr++;
 				pos++;
 			}
-
+// remove \n... do contrário o array de headers da libcurl buga
 			method=StrRep(method,"\n","",512);
 			method=StrRep(method,"\r","",512);
 			method=StrRep(method,"\t","",512);
@@ -157,9 +176,11 @@ printf("DEBUG_PARSE::: DATA : %s\n method: %s\n",data,method);
  
 		}
 puts("debug1"); 
+// escreve a response na memória
 		curl_easy_setopt(curl,  CURLOPT_WRITEFUNCTION, WriteMemoryCallback);
 		curl_easy_setopt(curl,  CURLOPT_WRITEDATA, (void *)&chunk);
     
+    // caso tenha completado argumento de usereragent
 		if(arg[6]!=NULL)
 		{
 			curl_easy_setopt(curl,  CURLOPT_USERAGENT, arg[6]);
@@ -170,6 +191,7 @@ puts("debug1");
 		if(arg[11]==NULL)
 			curl_easy_setopt(curl,  CURLOPT_ENCODING,"gzip,deflate");
 
+// caso defina cookie
 		if(arg[3]!=NULL)
 		{
 			curl_easy_setopt(curl,CURLOPT_COOKIEFILE,arg[3]);
@@ -180,6 +202,7 @@ puts("debug1");
 
 		curl_easy_setopt(curl,CURLOPT_FOLLOWLOCATION,1);
 
+// caso tenha definido cert ssl
 		if(arg[7]!=NULL) 
 		{
 			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1);
@@ -192,9 +215,10 @@ puts("debug1");
 		if(arg[8]!=NULL) 
 			curl_easy_setopt(curl,CURLOPT_TIMEOUT,atoi(arg[8])); 
 
+//caso queira definir a versão do ssl
 		if(arg[9]!=NULL) 
 			curl_easy_setopt(curl,CURLOPT_SSLVERSION,atoi(arg[9]));
- // custom request
+ // caso tenha escolhido custom request
 		if(arg[11]!=NULL)
 		{
                   
@@ -207,8 +231,11 @@ puts("debug2");
 			curl_easy_setopt(curl,CURLOPT_HEADER,1); 
 		}
  
-		curl_easy_setopt(curl,CURLOPT_VERBOSE,1); 
+ // caso esteja depurando usar metodo verbose
+		curl_easy_setopt(curl,CURLOPT_VERBOSE,1);
+		
 		curl_easy_perform(curl);
+		// pega status da response 201,404 etc...
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE,&status);
 		curl_easy_cleanup(curl);
 puts("debug3");
@@ -221,6 +248,7 @@ puts("debug003");
 			if(data!=NULL)
 				free(data);	
 puts("debug33");
+// libera a lista de headers do curl caso tenha usado na custom request
 			curl_slist_free_all(headers2);
 
 		}
@@ -229,6 +257,7 @@ puts("debug33");
 // printf("%s\n",chunk.memory);
 puts("debug4");
                  
+// aqui lê a response e vê se algo deu match                 
 // arg[10]  list to find with regex , arg[2] list without regex
 		if( (arg[2] || arg[10] ) && status != 0 )
 		{
@@ -276,7 +305,7 @@ puts("debug4");
 			}
 
  			fclose(fp);
-
+// caso não tenha lista para match ele soh salva o resultado na tabela html, brute de path para path disclosure exemplo...
 		} else {
 			fprintf(stdout,"%s [ %s %lu %s ] Payload: %s %s %s Params: %s %s %s\n",YELLOW,CYAN,status,YELLOW,GREEN,line,YELLOW,CYAN,make,LAST);
 			pathsource=(char *)malloc(sizeof(char)*64);
@@ -315,15 +344,18 @@ puts("debug5");
 }
 
 
+/*
+função par amontar tabela de resultados e iniciar o crawler
+*/
 void scan(void *arguments)
 {
 	FILE *fp=NULL;
-
+// unpack nos argumentos
 	char **arg = (char **)arguments;
 	char *pathtable=NULL,*pathhammer=NULL,*view;
 	char line[2048]; 
 
- 
+ // começa a montar informações para gerar tabela de resultado
 	pathtable=(char *)malloc(sizeof(char)*64);
 	memset(pathtable, 0, sizeof(char)*64);
 	strlcat(pathtable,"tables/",63);
@@ -339,13 +371,12 @@ void scan(void *arguments)
  
 	view=(char *)malloc(sizeof(char)*2048);
 	memset(view, 0,sizeof(char)*2048);
-
+// monta tabela para gerar com datatables, para ver o resultado final no HTML, com highlights etc
 	strlcat(view,readLine(TEMPLATE2),2047);
 	strlcat(view,"\"sAjaxSource\": \"",2047);
 	strlcat(view,arg[5],2047);
  	strlcat(view,".txt\" \n",2047);
 	strlcat(view,readLine(TEMPLATE3),2047);
-
 	pathhammer=(char *)malloc(sizeof(char)*64);
 	memset(pathhammer, 0,sizeof(char)*64);
  	strlcat(pathhammer,"tables/",63);
@@ -355,16 +386,18 @@ void scan(void *arguments)
 	WriteFile(pathtable,"{ \"aaData\": [ \n");
 
 
+// vai pegando as linhas que tem que fuzzear e mandando para o crawler
 	while(fgets(line,2047,fp) != NULL) 
 		spider(arguments,line,pathtable);
   
+  // fecha tabela do datatables q usa jquery...
 	WriteFile(pathtable," [\"\",\"\",\"\",\"\"] \n ] }");
 
 	puts(RED);
 	fprintf(stdout,"end scan \n look the file %s\n long life to Wotan\n",pathhammer);
 	puts(LAST);
 
-
+// libera heap
 	if(pathtable)
  		free(pathtable);
 
