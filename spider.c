@@ -58,6 +58,11 @@ void spider(void *pack,char *line,char * pathtable)
 	chomp(line);
 
 // xxx...custom..request...xxx special char counter
+/*
+exemplo
+$ ./0d1n --host 'http://httpbin.org' --custom_request request_json.txt  --payloads payloads/sqli.txt --find_string_list response2find/find.txt  --log tes000
+
+*/
 	if(arg[11]!=NULL)
 	{
 		// vai ler a template de request, ver quantos chars especiais "!" tem para trocar por palavras de payloads
